@@ -1,0 +1,26 @@
+@@ -62,13 +62,13 @@ function pidofproc() {
+         return 1
+     fi
+
+-    local pidfile=`cat $2`
++    local pid=`cat $2`
+
+-    if [ "x$pidfile" == "x" ]; then
++    if [ "x$pid" == "x" ]; then
+         return 1
+     fi
+
+-    if ps --pid "$pidfile" | grep -q $(basename $3); then
++    if ps --pid "$pid" | grep -q $pid; then
+         return 0
+     fi
+
+@@ -135,7 +135,7 @@ case $1 in
+
+         log_success_msg "Starting the process" "$name"
+         if which start-stop-daemon > /dev/null 2>&1; then
+-            start-stop-daemon --chuid $USER:$GROUP --start --quiet --pidfile $pidfile --exec $daemon -- -pidfile $pidfile -config $config $LIBVIRT_EXPORTER_OPTS >>$STDOUT 2>>$STDERR &
++            start-stop-daemon --make-pidfile --chuid $USER:$GROUP --start --quiet --pidfile $pidfile --exec $daemon -- $LIBVIRT_EXPORTER_OPTS >>$STDOUT 2>>$STDERR &
+         else
+             su -s /bin/sh -c "nohup $daemon -pidfile $pidfile -config $config $LIBVIRT_EXPORTER_OPTS >>$STDOUT 2>>$STDERR &" $USER
+         fi
