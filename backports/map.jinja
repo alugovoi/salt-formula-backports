@@ -1,0 +1,22 @@
+{%- load_yaml as base_defaults %}
+  {%- if pillar.get('backports', {}).get('vcp', {}).get('os_controller', {}).get.nova_scheduler is defined %}
+vcp:
+  Debian:
+    os_controller:
+      nova_sched:
+        python_path: /usr/lib/python2.7/dist-packages/nova
+
+  RedHat:
+    os_controller:
+      nova_sched:
+        python_path: /usr/lib/python2.7/dist-packages/nova
+  {%- else %}
+vcp:
+ {}
+  {%- endif%}
+salt_master:
+ {}
+{%- endload %}
+
+{% set vcp    = salt['grains.filter_by'](base_defaults['vcp'], merge=salt['pillar.get']('backports:vcp', {}), base='vcp') %}
+{% set salt_master = salt['grains.filter_by'](base_defaults['salt_master'], merge=salt['pillar.get']('backports:salt_master', {}), base='salt_master') %}
