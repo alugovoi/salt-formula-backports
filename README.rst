@@ -77,20 +77,32 @@ Run the highstate on cfg01 node::
 
 How to enable specific patch
 ============================
-For eample to enable nova init patch on compute
+For example to enable patch on salt master's ntp formula
 
-Add following class or define the  pillar on the compute::
+Add following class or define the  pillar on the salt master (make sure pillar is visible only for this particular node)::
 
-  root@cfg01:/srv/salt/reclass# cat  ./classes/cluster/lab/infra/backports/os_compute.yml
+  root@cfg01:/srv/salt/reclass# cat  ./classes/cluster/lab/infra/config/patches.yml
   applications:
     - backports
 
   parameters:
     backports:
-      vcp:
-        os_compute:
-          nova_init:
-            enabled: True
+      patches:
+        PROD-XXX:
+          /usr/share/salt-formulas/env/ntp/server.sls:
+            md5sum: 7ba0b2dc98a5aae53fb92a8e95993cf7 
+            diff: |
+                  --- ntp/server.sls      2018-11-22 21:27:51.000000000 +0800
+                  +++ ntp/server.sls.n    2019-05-06 23:49:04.449291735 +0800
+                  @@ -80,4 +80,8 @@
+
+                   {%- endif %}
+
+                  +fake_state:
+                  +  test.nop:
+                  +    - name: patch
+                  +
+
 
 
 How to create a new patch
@@ -106,11 +118,19 @@ Make the necessary  change::
 
 Run the diff command to see the difference between files::
 
-  diff nova-compute-kvm-upstart.conf.orig /etc/init/nova-compute-kvm-upstart.conf
-  4c4
-  < start on started libvirt-bin
-  ---
-  > start on started libvirtd
+  diff -u nova-compute-kvm-upstart.conf.orig /etc/init/nova-compute-kvm-upstart.conf
+
+  --- /etc/init/nova-compute-kvm-upstart.conf     2018-03-31 20:48:30.000000000 +0800
+  +++ nova-compute-kvm-upstart.conf.orig  2019-05-07 20:58:26.601836128 +0800
+  @@ -1,7 +1,7 @@
+   description "OpenStack Compute"
+   author "Thomas Goirand <zigo@debian.org>"
+
+  -start on started libvirt-bin
+  +start on started libvirtd
+   stop on runlevel [!2345]
+
+   chdir /var/run
 
 Save the output into files direcotry in formula::
 
@@ -121,13 +141,25 @@ check the md5 sum for the file and add into resource::
   md5sum /etc/init/nova-compute-kvm-upstart.conf
   34dd520613bda0bf572a3bcee5767d29  /etc/init/nova-compute-kvm-upstart.conf
 
-This info should be enough to create the resource::
+This info should be enough to create the pillar data::
 
-  vcp.os_controller.nova.init:
-    file.patch:
-      - source: salt://backports/files/patch-init-nova-compute.conf
-      - hash: md5:34dd520613bda0bf572a3bcee5767d29
-      - name: /etc/init/nova-compute-kvm-upstart.conf
+  backports:
+    patches: 
+      compute_patch:
+        md5sum: 34dd520613bda0bf572a3bcee5767d29
+        source: /etc/init/nova-compute-kvm-upstart.conf
+        diff: | 
+                --- /etc/init/nova-compute-kvm-upstart.conf     2018-03-31 20:48:30.000000000 +0800
+                +++ nova-compute-kvm-upstart.conf.orig  2019-05-07 20:58:26.601836128 +0800
+                @@ -1,7 +1,7 @@
+                 description "OpenStack Compute"
+                 author "Thomas Goirand <zigo@debian.org>"
+
+                -start on started libvirt-bin
+                +start on started libvirtd
+                 stop on runlevel [!2345]
+
+                 chdir /var/run
 
 Best practice:
 ==============
@@ -148,23 +180,25 @@ Pillar::
 
   parameters:
     backports:
-      vcp:
-        os_compute:
-          nova_init:
-            enabled: True
-          apparmor_libvirt:
-            enabled: True
-          libvirt_exporter:
-            enabled: True
-        os_controller:
-          nova_scheduler:
-            enabled: True
-      salt_master:
-          maas:
-           enabled: True
-          openssh:
-           enabled: True
-          contrail_snmp:
-           enabled: True
-          rabbitmq_telegraf:
-           enabled: True
+      patch_directory: "/tmp/patches"
+      patches:
+        PROD-26834:
+          /usr/share/salt-formulas/env/jenkins/client/init.sls:
+             md5sum: bdce63b782f9056338cd43114b9b7dfc
+             diff: |
+                    diff --git a/jenkins/client/init.sls b/jenkins/client/init.sls
+                    index 9c8509c..85cacb3 100644
+                     ......
+                       - jenkins.client.throttle_category
+                     {%- endif %}
+          /usr/share/salt-formulas/env/jenkins/_states/jenkins_location.py:
+            md5sum: e9212236971306230710b41493d7d2fa
+            diff: |
+                    diff --git a/_states/jenkins_location.py b/_states/jenkins_location.py
+                    new file mode 100644
+                    index 0000000..7aac8bf
+                    ......
+                    +                        ['CHANGED', 'EXISTS'],
+                    +                        {'url': url, 'email': email},
+                    +                        'location config')
+

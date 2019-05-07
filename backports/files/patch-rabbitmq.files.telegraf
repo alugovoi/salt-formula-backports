@@ -1,7 +1,0 @@
-11,16d10
-< {%- if values.queue_name_include is defined %}
-<   queue_name_include = {{ values.queue_name_include|json }}
-< {%- endif %}
-< {%- if values.queue_name_exclude is defined %}
-<   queue_name_exclude = {{ values.queue_name_exclude|json }}
-< {%- endif %}

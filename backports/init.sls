@@ -1,14 +1,22 @@
+{%- from "backports/map.jinja" import backports with context %}
+
 {%- if pillar.backports is defined %}
 
-{%- if pillar.backports.salt_master is defined %}
-include:
-- backports.salt_master
-{%- endif %}
+{% set patch_directory = backports.get('patch_directory','/tmp/patches') %}
 
-{%- if pillar.backports.vcp is defined %}
-include:
-- backports.vcp
-{%- endif %}
+{% for fix, fix_data in backports.get('patches').iteritems() %}
+{% for patch_source, patch_data in fix_data.iteritems() %}
+{% set patch_filename = patch_directory + "/" + fix + patch_source.replace('/','_') + ".diff" %}
+
+apply_patch_{{ fix }}_{{ patch_filename }}:
+  backport.patch_applied:
+    - name: {{ patch_filename }}
+    - source: {{ patch_source }}
+    - hash: {{ patch_data.md5sum }}
+    - content_pillar: backports:patches:{{ fix }}:{{ patch_source }}:diff
+
+{% endfor %}
+{% endfor %}
 
 {%- endif %}
 backports.completed:
