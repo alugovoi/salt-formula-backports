@@ -20,6 +20,7 @@ def patch_applied(name,
     }
 
     hash_ = kwargs.pop('hash', None)
+    encoding_ = kwargs.pop('encoding', None)
     content_pillar = kwargs.pop('content_pillar', None)
 
     data_pillar = __salt__['pillar.get'](content_pillar)
@@ -36,8 +37,11 @@ def patch_applied(name,
     except IOError:
         log.info("There is no original file %s available" % source)
 
-
-    if __salt__['file.manage_file']( name=name,
+    if encoding_ == 'base64':
+       __salt__['hashutil.base64_decodefile']( instr=data_pillar, outfile=name)
+       log.info("Base64 patch identified")
+    else:
+       __salt__['file.manage_file']( name=name,
                                      sfn=None,
                                      ret=None,
                                      source=None,
@@ -51,9 +55,7 @@ def patch_applied(name,
                                      template=None,
                                      show_changes=False,
                                      contents=data_pillar,
-                                     dir_mode=None):
-         ret['comment'] = 'Patch file was created'
-
+                                     dir_mode=None)
 
     patch_ret = __salt__['file.patch'](source, name)
     log.debug('Returning patch status %s' % patch_ret)
