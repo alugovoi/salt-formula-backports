@@ -145,7 +145,7 @@ This info should be enough to create the pillar data::
 
   backports:
     patches: 
-      compute_patch:
+       PROD-XXX_compute_patch:
         md5sum: 34dd520613bda0bf572a3bcee5767d29
         source: /etc/init/nova-compute-kvm-upstart.conf
         diff: | 
@@ -168,6 +168,7 @@ Best practice:
 2. Add a link to the product ticket/review next to the resource in the formula.
 3. Make sure to add service restart if needed.
 4. Pay attention to failed patch resources. Most likely this means that file was changed.  review the file and update or disable the patch if necessary.
+5. Use product ticket number as part of patch name to easely identify backport source.
 
 
 Full pillar list:
