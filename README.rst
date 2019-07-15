@@ -8,7 +8,7 @@
 Setting up downstream mirror
 ============================
 
-Setup formula syncronisation after you deployed Drivertain.
+Setup formula syncronisation after you deployed Drivertain. The backport state can be used to apply any patches/modification which hadn't been included to offical packages. The state uses the backports:patches pillar to keep the neccessary information.
 
 Step 1:
 Check jenkins_admin_public_key and add it to service user in gerrit(git repo).
@@ -88,21 +88,21 @@ Add following class or define the  pillar on the salt master (make sure pillar i
   parameters:
     backports:
       patches:
-        PROD-XXX:
-          /usr/share/salt-formulas/env/ntp/server.sls:
-            md5sum: 7ba0b2dc98a5aae53fb92a8e95993cf7 
+        compute_patch:    												# you can refer to jira issue, gerrit CR, salesforce ID or any other id.
+          /etc/init/nova-compute-kvm-upstart.conf:       								# file to apply the patch
+            md5sum: 34dd520613bda0bf572a3bcee5767d29									# md5sum of resulted file
             diff: |
-                  --- ntp/server.sls      2018-11-22 21:27:51.000000000 +0800
-                  +++ ntp/server.sls.n    2019-05-06 23:49:04.449291735 +0800
-                  @@ -80,4 +80,8 @@
+                    --- /etc/init/nova-compute-kvm-upstart.conf     2018-03-31 20:48:30.000000000 +0800
+                    +++ nova-compute-kvm-upstart.conf.orig  2019-05-07 20:58:26.601836128 +0800
+                    @@ -1,7 +1,7 @@
+                     description "OpenStack Compute"
+                     author "Thomas Goirand <zigo@debian.org>"
 
-                   {%- endif %}
+                    -start on started libvirt-bin
+                    +start on started libvirtd
+                     stop on runlevel [!2345]
 
-                  +fake_state:
-                  +  test.nop:
-                  +    - name: patch
-                  +
-
+                     chdir /var/run
 
 
 How to create a new patch
@@ -144,22 +144,37 @@ check the md5 sum for the file and add into resource::
 This info should be enough to create the pillar data::
 
   backports:
-    patches: 
+    patches:
       compute_patch:
-        md5sum: 34dd520613bda0bf572a3bcee5767d29
-        source: /etc/init/nova-compute-kvm-upstart.conf
-        diff: | 
-                --- /etc/init/nova-compute-kvm-upstart.conf     2018-03-31 20:48:30.000000000 +0800
-                +++ nova-compute-kvm-upstart.conf.orig  2019-05-07 20:58:26.601836128 +0800
-                @@ -1,7 +1,7 @@
-                 description "OpenStack Compute"
-                 author "Thomas Goirand <zigo@debian.org>"
+        /etc/init/nova-compute-kvm-upstart.conf:
+          md5sum: 34dd520613bda0bf572a3bcee5767d29
+          diff: |
+                  --- /etc/init/nova-compute-kvm-upstart.conf     2018-03-31 20:48:30.000000000 +0800
+                  +++ nova-compute-kvm-upstart.conf.orig  2019-05-07 20:58:26.601836128 +0800
+                  @@ -1,7 +1,7 @@
+                   description "OpenStack Compute"
+                   author "Thomas Goirand <zigo@debian.org>"
 
-                -start on started libvirt-bin
-                +start on started libvirtd
-                 stop on runlevel [!2345]
+                  -start on started libvirt-bin
+                  +start on started libvirtd
+                   stop on runlevel [!2345]
 
-                 chdir /var/run
+                   chdir /var/run
+
+If the patch data contains any special characters and pillar is failed to build you can use base64 enconding for patch code::
+
+
+  backports:
+    patches:
+      compute_patch:
+        /usr/share/salt-formulas/env/oslo_templates/files/queens/oslo/messaging/_rabbit.conf:
+          md5sum: 73a3eebf769b3038a7c65a5019141938
+          encoding: base64
+          diff: |
+                   RnJvbSBiOTIzMGIzMGYwNGRkOTE4YzliOWI0NzkzYjIwNWYwYTZmM2M2ZDZmIE1vbiBTZXAgMTcg
+                     ...
+                   ID0ge3sgX2RhdGEucnBjX3JldHJ5X2RlbGF5IH19Cit7JS0gZW5kaWYgJX0K
+
 
 Best practice:
 ==============
